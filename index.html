@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Baustellen-Radar Aplerbeck</title>
-  <meta name="description" content="Live-Baustellenkarte für den Stadtbezirk Dortmund-Aplerbeck auf Basis offizieller Open-Data-Daten der Stadt Dortmund." />
+  <meta name="description" content="Live-Baustellenkarte für Dortmund-Aplerbeck auf Basis offizieller Open-Data-Daten der Stadt Dortmund." />
 
   <link
     rel="stylesheet"
@@ -165,7 +165,7 @@
       display:inline-block;
     }
 
-    .street { font-weight: 800; margin: 0 0 8px; font-size: 20px; }
+    .street { font-weight: 800; margin: 0 0 8px; font-size: 17px; }
     .desc { margin: 0 0 6px; color:#334155; font-size: 14px; line-height:1.38; }
     .small { margin: 0; color: var(--muted); font-size: 12px; }
 
@@ -211,16 +211,27 @@
       vertical-align: middle;
     }
 
-    .marker {
-      width: 14px;
-      height: 14px;
+    .marker-badge {
+      width: 30px;
+      height: 30px;
       border-radius: 50%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       border: 2px solid #fff;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.2);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.18), 0 3px 8px rgba(0,0,0,.22);
     }
 
-    .marker.active { background: var(--active); }
-    .marker.upcoming { background: var(--upcoming); }
+    .marker-badge.active { background: var(--active); }
+    .marker-badge.upcoming { background: var(--upcoming); }
+
+    .marker-badge svg {
+      width: 15px;
+      height: 15px;
+      stroke: #fff;
+      stroke-width: 2;
+      fill: none;
+    }
 
     .leaflet-popup-content { margin: 10px 12px; line-height: 1.35; }
 
@@ -228,7 +239,7 @@
       .stats { grid-template-columns: 1fr; }
       .legend { grid-template-columns: 1fr; }
       #map { height: 52vh; min-height: 320px; }
-      .street { font-size: 17px; }
+      .street { font-size: 16px; }
     }
   </style>
 </head>
@@ -277,7 +288,7 @@
       Quelle: Stadt Dortmund Open Data (Tiefbauamt), Datensätze
       <strong>Baustellen tagesaktuell - Flächen</strong> und
       <strong>Baustellen geplant - Flächen</strong>.
-      Der rote Rahmen zeigt die Grenze des Stadtbezirks Aplerbeck (Datensatz Stadtbezirke).
+      Der rote Rahmen zeigt die Grenze des Stadtbezirks Aplerbeck.
     </div>
 
     <section class="legend">
@@ -313,16 +324,20 @@
       attribution: "&copy; OpenStreetMap-Mitwirkende"
     }).addTo(map);
 
+    map.createPane("maskPane");
+    map.getPane("maskPane").style.zIndex = 430;
+
     map.createPane("districtPane");
-    map.getPane("districtPane").style.zIndex = 430;
+    map.getPane("districtPane").style.zIndex = 440;
 
     map.createPane("sitePane");
-    map.getPane("sitePane").style.zIndex = 440;
+    map.getPane("sitePane").style.zIndex = 450;
 
     map.createPane("markerPane");
-    map.getPane("markerPane").style.zIndex = 450;
+    map.getPane("markerPane").style.zIndex = 460;
 
     const districtLayerGroup = L.layerGroup().addTo(map);
+    const maskLayerGroup = L.layerGroup().addTo(map);
     const siteLayerGroup = L.layerGroup().addTo(map);
 
     const listEl = document.getElementById("list");
@@ -331,6 +346,7 @@
     let allItems = [];
     let currentFilter = "all";
     let districtBounds = null;
+    let districtFeature = null;
 
     function esc(str) {
       return String(str ?? "").replace(/[&<>"']/g, (s) => ({
@@ -384,11 +400,11 @@
       if (status === "upcoming") {
         return {
           pane: "sitePane",
-          color: "#319fb1",
+          color: "#2b95b3",
           weight: 2,
           dashArray: "5 4",
           fillColor: "#52b7c1",
-          fillOpacity: 0.24
+          fillOpacity: 0.20
         };
       }
       return {
@@ -396,7 +412,7 @@
         color: "#a91f1f",
         weight: 2,
         fillColor: "#c62828",
-        fillOpacity: 0.25
+        fillOpacity: 0.20
       };
     }
 
@@ -410,6 +426,25 @@
         return { type: "Feature", geometry: shape.geometry, properties: shape.properties || {} };
       }
       return null;
+    }
+
+    function markerIcon(status) {
+      const cls = status === "upcoming" ? "upcoming" : "active";
+      return L.divIcon({
+        className: "",
+        html: `
+          <div class="marker-badge ${cls}">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="2" y="6" width="20" height="8" rx="1"></rect>
+              <path d="M17 14v7"></path><path d="M7 14v7"></path>
+              <path d="M17 3v3"></path><path d="M7 3v3"></path>
+              <path d="M10 14 2.3 6.3"></path><path d="m14 6 7.7 7.7"></path><path d="m8 6 8 8"></path>
+            </svg>
+          </div>
+        `,
+        iconSize: [30, 30],
+        iconAnchor: [15, 15]
+      });
     }
 
     function normalizeRecord(r, sourceType) {
@@ -443,7 +478,8 @@
         lat: Number.isFinite(lat) ? lat : null,
         lon: Number.isFinite(lon) ? lon : null,
         geoShape: r.geo_shape || null,
-        _layer: null
+        _layer: null,
+        _marker: null
       };
     }
 
@@ -474,7 +510,6 @@
 
     function renderMap(items) {
       siteLayerGroup.clearLayers();
-
       const boundsGroup = L.featureGroup();
 
       items.forEach((item) => {
@@ -483,7 +518,8 @@
 
         if (feature && feature.geometry) {
           const gj = L.geoJSON(feature, {
-            style: getSiteStyle(item.status)
+            style: getSiteStyle(item.status),
+            pane: "sitePane"
           });
 
           gj.eachLayer((layer) => {
@@ -498,23 +534,17 @@
           gj.addTo(siteLayerGroup);
           boundsGroup.addLayer(gj);
           item._layer = gj;
-          return;
         }
 
         if (item.lat != null && item.lon != null) {
           const marker = L.marker([item.lat, item.lon], {
             pane: "markerPane",
-            icon: L.divIcon({
-              className: "",
-              html: `<div class="marker ${item.status === "upcoming" ? "upcoming" : "active"}"></div>`,
-              iconSize: [14, 14],
-              iconAnchor: [7, 7]
-            })
+            icon: markerIcon(item.status)
           }).bindPopup(popup);
 
           marker.addTo(siteLayerGroup);
           boundsGroup.addLayer(marker);
-          item._layer = marker;
+          item._marker = marker;
         }
       });
 
@@ -546,25 +576,17 @@
         el.addEventListener("click", () => {
           const id = el.getAttribute("data-id");
           const item = allItems.find((x) => x.id === id);
-          if (!item || !item._layer) return;
+          if (!item) return;
 
-          if (item._layer.getBounds && item._layer.getBounds().isValid()) {
+          if (item._layer && item._layer.getBounds && item._layer.getBounds().isValid()) {
             map.fitBounds(item._layer.getBounds(), { padding: [24, 24], maxZoom: 16 });
-            let opened = false;
-            if (item._layer.eachLayer) {
-              item._layer.eachLayer((ly) => {
-                if (!opened && ly.openPopup) {
-                  ly.openPopup();
-                  opened = true;
-                }
-              });
-            }
+            if (item._marker) item._marker.openPopup();
             return;
           }
 
-          if (item.lat != null && item.lon != null) {
-            map.setView([item.lat, item.lon], Math.max(map.getZoom(), 15), { animate: true });
-            if (item._layer.openPopup) item._layer.openPopup();
+          if (item._marker) {
+            map.setView(item._marker.getLatLng(), Math.max(map.getZoom(), 15), { animate: true });
+            item._marker.openPopup();
           }
         });
       });
@@ -574,91 +596,140 @@
       const items = filteredItems();
       renderMap(items);
       renderList(items);
-
       metaEl.textContent =
         `${items.length} Treffer · Bezirk: ${DISTRICT} · Stand: ${new Date().toLocaleString("de-DE")}`;
     }
 
-    async function loadDistrictBorder() {
-      try {
-        const url = new URL(URL_DISTRICT_BORDER);
-        url.search = new URLSearchParams({
-          where: `stadtbezirk_bezeichnung="${DISTRICT}"`,
-          limit: "1"
-        }).toString();
+    function ringToLatLng(ring) {
+      const out = [];
+      for (let i = 0; i < ring.length; i++) {
+        const p = ring[i];
+        if (!Array.isArray(p) || p.length < 2) continue;
+        out.push([p[1], p[0]]);
+      }
+      if (out.length > 1) {
+        const a = out[0];
+        const b = out[out.length - 1];
+        if (a[0] === b[0] && a[1] === b[1]) out.pop();
+      }
+      return out;
+    }
 
-        const res = await fetch(url.toString(), { cache: "no-store" });
-        if (!res.ok) return;
+    function getExteriorRings(feature) {
+      if (!feature || !feature.geometry) return [];
+      const g = feature.geometry;
 
-        const json = await res.json();
-        const row = (json.results || [])[0];
-        if (!row || !row.geografische_polygone) return;
+      if (g.type === "Polygon") {
+        return g.coordinates && g.coordinates[0] ? [ringToLatLng(g.coordinates[0])] : [];
+      }
 
-        const borderFeature = toFeature(row.geografische_polygone);
-        if (!borderFeature) return;
-
-        districtLayerGroup.clearLayers();
-
-        const districtLayer = L.geoJSON(borderFeature, {
-          pane: "districtPane",
-          style: {
-            color: "#9b1c1c",
-            weight: 3,
-            opacity: 0.95,
-            fillOpacity: 0
-          }
-        }).addTo(districtLayerGroup);
-
-        if (districtLayer.getBounds && districtLayer.getBounds().isValid()) {
-          districtBounds = districtLayer.getBounds();
+      if (g.type === "MultiPolygon") {
+        const rings = [];
+        for (const poly of g.coordinates || []) {
+          if (poly && poly[0]) rings.push(ringToLatLng(poly[0]));
         }
-      } catch (_) {}
+        return rings;
+      }
+
+      return [];
+    }
+
+    function drawDistrictAndMask() {
+      districtLayerGroup.clearLayers();
+      maskLayerGroup.clearLayers();
+
+      if (!districtFeature) return;
+
+      const district = L.geoJSON(districtFeature, {
+        pane: "districtPane",
+        style: {
+          color: "#9b1c1c",
+          weight: 3,
+          opacity: 0.95,
+          fillOpacity: 0
+        }
+      }).addTo(districtLayerGroup);
+
+      if (district.getBounds && district.getBounds().isValid()) {
+        districtBounds = district.getBounds();
+      }
+
+      const holes = getExteriorRings(districtFeature).filter(r => r.length >= 3);
+      if (!holes.length) return;
+
+      const outerRing = [
+        [90, -360],
+        [90, 360],
+        [-90, 360],
+        [-90, -360]
+      ];
+
+      const maskLatLngs = [outerRing, ...holes];
+
+      L.polygon(maskLatLngs, {
+        pane: "maskPane",
+        stroke: false,
+        fillColor: "#102131",
+        fillOpacity: 0.42,
+        interactive: false,
+        fillRule: "evenodd",
+        noClip: true
+      }).addTo(maskLayerGroup);
+    }
+
+    async function loadDistrictBorder() {
+      const url = new URL(URL_DISTRICT_BORDER);
+      url.search = new URLSearchParams({
+        where: `stadtbezirk_bezeichnung="${DISTRICT}"`,
+        limit: "1"
+      }).toString();
+
+      const res = await fetch(url.toString(), { cache: "no-store" });
+      if (!res.ok) throw new Error("Stadtbezirksgrenze nicht ladbar");
+
+      const json = await res.json();
+      const row = (json.results || [])[0];
+      if (!row || !row.geografische_polygone) throw new Error("Keine Bezirksgeometrie gefunden");
+
+      districtFeature = toFeature(row.geografische_polygone);
+      drawDistrictAndMask();
     }
 
     async function loadData() {
-      try {
-        const activeUrl = new URL(URL_LIVE_AREAS);
-        activeUrl.search = new URLSearchParams({
-          where: `stadtbezirk="${DISTRICT}"`,
-          limit: "100"
-        }).toString();
+      const activeUrl = new URL(URL_LIVE_AREAS);
+      activeUrl.search = new URLSearchParams({
+        where: `stadtbezirk="${DISTRICT}"`,
+        limit: "100"
+      }).toString();
 
-        const plannedUrl = new URL(URL_PLANNED_AREAS);
-        plannedUrl.search = new URLSearchParams({
-          where: `stadtbezirk_bezeichnung="${DISTRICT}"`,
-          limit: "100"
-        }).toString();
+      const plannedUrl = new URL(URL_PLANNED_AREAS);
+      plannedUrl.search = new URLSearchParams({
+        where: `stadtbezirk_bezeichnung="${DISTRICT}"`,
+        limit: "100"
+      }).toString();
 
-        const [activeRes, plannedRes] = await Promise.all([
-          fetch(activeUrl.toString(), { cache: "no-store" }),
-          fetch(plannedUrl.toString(), { cache: "no-store" })
-        ]);
+      const [activeRes, plannedRes] = await Promise.all([
+        fetch(activeUrl.toString(), { cache: "no-store" }),
+        fetch(plannedUrl.toString(), { cache: "no-store" })
+      ]);
 
-        if (!activeRes.ok && !plannedRes.ok) {
-          throw new Error("Beide Datenquellen nicht erreichbar");
-        }
-
-        const activeJson = activeRes.ok ? await activeRes.json() : { results: [] };
-        const plannedJson = plannedRes.ok ? await plannedRes.json() : { results: [] };
-
-        const activeRows = (activeJson.results || []).map((r) => normalizeRecord(r, "active"));
-        const plannedRows = (plannedJson.results || []).map((r) => normalizeRecord(r, "planned"));
-
-        allItems = [...activeRows, ...plannedRows]
-          .filter(Boolean)
-          .sort((a, b) => {
-            const av = a.von ? a.von.getTime() : 0;
-            const bv = b.von ? b.von.getTime() : 0;
-            return av - bv;
-          });
-
-        updateCounts();
-        rerender();
-      } catch (err) {
-        console.error(err);
-        metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
-        listEl.innerHTML = `<div class="empty">Fehler beim Laden der Daten. Bitte später erneut versuchen.</div>`;
+      if (!activeRes.ok && !plannedRes.ok) {
+        throw new Error("Beide Datenquellen nicht erreichbar");
       }
+
+      const activeJson = activeRes.ok ? await activeRes.json() : { results: [] };
+      const plannedJson = plannedRes.ok ? await plannedRes.json() : { results: [] };
+
+      const activeRows = (activeJson.results || []).map((r) => normalizeRecord(r, "active"));
+      const plannedRows = (plannedJson.results || []).map((r) => normalizeRecord(r, "planned"));
+
+      allItems = [...activeRows, ...plannedRows]
+        .filter(Boolean)
+        .sort((a, b) => {
+          const av = a.von ? a.von.getTime() : 0;
+          const bv = b.von ? b.von.getTime() : 0;
+          return av - bv;
+        });
     }
 
     document.querySelectorAll(".chip").forEach((btn) => {
@@ -671,8 +742,21 @@
     });
 
     (async function init() {
-      await loadDistrictBorder();
-      await loadData();
+      try {
+        await loadDistrictBorder();
+      } catch (e) {
+        console.error(e);
+      }
+
+      try {
+        await loadData();
+        updateCounts();
+        rerender();
+      } catch (e) {
+        console.error(e);
+        metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
+        listEl.innerHTML = `<div class="empty">Fehler beim Laden der Daten. Bitte später erneut versuchen.</div>`;
+      }
 
       if (districtBounds && districtBounds.isValid()) {
         map.fitBounds(districtBounds, { padding: [20, 20], maxZoom: 13 });
