@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Baustellen-Radar Aplerbeck</title>
+  <meta name="description" content="Live-Baustellenkarte für den Stadtbezirk Dortmund-Aplerbeck auf Basis der Open-Data-Daten der Stadt Dortmund." />
+
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+
+  <style>
+    :root{
+      --bg:#f3f5f8;
+      --card:#ffffff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e2e8f0;
+      --primary:#1f8a92;
+      --active:#c62828;
+      --upcoming:#52b7c1;
+      --overdue:#e67e22;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+    }
+
+    .hero {
+      padding: 48px 16px 40px;
+      color: #fff;
+      background:
+        radial-gradient(900px 500px at 15% 20%, rgba(82,183,193,.45), transparent 55%),
+        radial-gradient(900px 500px at 85% 30%, rgba(255,166,0,.22), transparent 60%),
+        linear-gradient(125deg,#2f6c7a 0%, #1f4258 45%, #1c2731 100%);
+    }
+    .hero-inner { max-width: 1120px; margin: 0 auto; }
+    .pill {
+      display:inline-block;
+      border:1px solid rgba(255,255,255,.2);
+      background: rgba(255,255,255,.08);
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-bottom: 14px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 5vw, 54px);
+      line-height: 1.1;
+    }
+    .sub {
+      margin: 0;
+      color: rgba(255,255,255,.88);
+      font-size: clamp(15px,2.2vw,22px);
+      max-width: 900px;
+    }
+
+    .wrap { max-width: 1120px; margin: 22px auto 34px; padding: 0 16px; }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .stat {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+    }
+    .stat .n { font-size: 24px; font-weight: 800; display:block; line-height:1; }
+    .stat small { color: var(--muted); }
+
+    .toolbar {
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      margin-bottom: 14px;
+      display:flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .filters { display:flex; flex-wrap:wrap; gap:8px; }
+    .chip {
+      border:1px solid var(--line);
+      background:#fff;
+      color:#0f172a;
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .chip.active { background: var(--primary); color:#fff; border-color:var(--primary);}
+    .meta { font-size: 12px; color: var(--muted); }
+
+    .map-card {
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+    #map { width:100%; height: 62vh; min-height: 360px; max-height: 760px; }
+
+    .list {
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+      gap: 12px;
+    }
+    .item {
+      background: var(--card);
+      border:1px solid var(--line);
+      border-left: 4px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      cursor: pointer;
+    }
+    .item:hover { border-color:#cbd5e1; }
+    .tag {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display:inline-block;
+    }
+    .street { font-weight: 800; margin: 0 0 8px; }
+    .desc { margin: 0 0 6px; color:#334155; font-size: 14px; line-height:1.35; }
+    .small { margin: 0; color: var(--muted); font-size: 12px; }
+    .empty {
+      background: var(--card);
+      border:1px dashed #cbd5e1;
+      color: var(--muted);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .legend {
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: repeat(3,minmax(0,1fr));
+      gap:10px;
+    }
+    .legend > div {
+      background: var(--card);
+      border:1px solid var(--line);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 13px;
+      color:#334155;
+    }
+
+    .dot {
+      width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px;
+      vertical-align: middle;
+    }
+
+    .leaflet-div-icon {
+      background: transparent;
+      border: 0;
+    }
+    .marker {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+    }
+    .marker.active { background: var(--active); }
+    .marker.upcoming { background: var(--upcoming); }
+    .marker.overdue { background: var(--overdue); }
+
+    @media (max-width: 780px){
+      .stats { grid-template-columns: 1fr; }
+      .legend { grid-template-columns: 1fr; }
+      #map { height: 52vh; min-height: 320px; }
+    }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="pill">Baustellen-Radar</span>
+      <h1>Baustellen in Aplerbeck</h1>
+      <p class="sub">
+        Live-Übersicht der gemeldeten Baustellen im Stadtbezirk Dortmund-Aplerbeck
+        auf Basis der Open-Data-Daten der Stadt Dortmund.
+      </p>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="stats">
+      <article class="stat"><span class="n" id="n-active">0</span><small>Aktiv</small></article>
+      <article class="stat"><span class="n" id="n-upcoming">0</span><small>Bevorstehend</small></article>
+      <article class="stat"><span class="n" id="n-overdue">0</span><small>Überfällig?</small></article>
+    </section>
+
+    <section class="toolbar">
+      <div class="filters">
+        <button class="chip active" data-filter="all">Alle</button>
+        <button class="chip" data-filter="active">Aktiv</button>
+        <button class="chip" data-filter="upcoming">Bevorstehend</button>
+        <button class="chip" data-filter="overdue">Überfällig?</button>
+      </div>
+      <div class="meta" id="meta">Lade Daten…</div>
+    </section>
+
+    <section class="map-card">
+      <div id="map"></div>
+    </section>
+
+    <section id="list" class="list"></section>
+
+    <section class="legend">
+      <div><span class="dot" style="background:var(--active)"></span><strong>Aktiv:</strong> Baustelle läuft aktuell.</div>
+      <div><span class="dot" style="background:var(--upcoming)"></span><strong>Bevorstehend:</strong> Startdatum liegt in der Zukunft.</div>
+      <div><span class="dot" style="background:var(--overdue)"></span><strong>Überfällig?:</strong> Enddatum liegt in der Vergangenheit.</div>
+    </section>
+
+    <p class="meta" style="margin-top:14px">
+      Quelle: Open Data Dortmund – Datensatz „fb66-baustellen-tagesaktuell“.
+    </p>
+  </main>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+
+  <script>
+    const STADTBEZIRK = "Aplerbeck";
+    const API_BASE = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/records";
+
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    const map = L.map("map", { zoomControl: true }).setView([51.49, 7.56], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap-Mitwirkende'
+    }).addTo(map);
+
+    const markerLayer = L.layerGroup().addTo(map);
+    const listEl = document.getElementById("list");
+    const metaEl = document.getElementById("meta");
+    let allItems = [];
+    let currentFilter = "all";
+
+    function esc(str) {
+      return String(str ?? "").replace(/[&<>"']/g, s => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      })[s]);
+    }
+
+    function parseDate(v) {
+      if (!v) return null;
+      const d = new Date(v + "T00:00:00");
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+
+    function fmtDate(d) {
+      return d ? d.toLocaleDateString("de-DE") : "k. A.";
+    }
+
+    function getStatus(von, bis) {
+      if (von && von > today) return "upcoming";
+      if (bis && bis < today) return "overdue";
+      return "active";
+    }
+
+    function statusLabel(s) {
+      if (s === "active") return "Aktiv";
+      if (s === "upcoming") return "Bevorstehend";
+      return "Überfällig?";
+    }
+
+    function statusColor(s) {
+      if (s === "active") return "var(--active)";
+      if (s === "upcoming") return "var(--upcoming)";
+      return "var(--overdue)";
+    }
+
+    function buildMarker(status) {
+      return L.divIcon({
+        className: "",
+        html: `<div class="marker ${status}"></div>`,
+        iconSize: [16,16],
+        iconAnchor: [8,8]
+      });
+    }
+
+    function parseMeasure(text) {
+      const raw = (text || "Baustelle").trim();
+
+      let street = raw;
+      let details = raw;
+      const firstDash = raw.indexOf(" - ");
+      if (firstDash > -1) {
+        street = raw.slice(0, firstDash).trim();
+        details = raw.slice(firstDash + 3).trim();
+      }
+
+      const parts = details.split(/\s*\/\/\/?\s*/).map(x => x.trim()).filter(Boolean);
+      return {
+        street,
+        desc: parts[0] || details,
+        restriction: parts[1] || ""
+      };
+    }
+
+    function normalizeRecord(r) {
+      const coord = r.geografische_koordinate || {};
+      const lat = Number(coord.lat);
+      const lon = Number(coord.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+      const parsed = parseMeasure(r.art_der_baumassnahme);
+      const von = parseDate(r.von);
+      const bis = parseDate(r.bis);
+      const status = getStatus(von, bis);
+
+      return {
+        id: `${lat}-${lon}-${parsed.street}`,
+        lat, lon,
+        street: parsed.street,
+        desc: parsed.desc,
+        restriction: parsed.restriction || (r.einschrankung || ""),
+        auftraggeber: r.auftraggeber || "",
+        von, bis,
+        zeitraum: r.zeitraum || "",
+        status
+      };
+    }
+
+    function filteredItems() {
+      if (currentFilter === "all") return allItems;
+      return allItems.filter(i => i.status === currentFilter);
+    }
+
+    function updateCounts() {
+      const c = { active:0, upcoming:0, overdue:0 };
+      allItems.forEach(i => c[i.status]++);
+      document.getElementById("n-active").textContent = c.active;
+      document.getElementById("n-upcoming").textContent = c.upcoming;
+      document.getElementById("n-overdue").textContent = c.overdue;
+    }
+
+    function renderMap(items) {
+      markerLayer.clearLayers();
+      const bounds = [];
+
+      items.forEach(i => {
+        const popup = `
+          <strong>${esc(i.street)}</strong><br>
+          ${esc(i.desc)}<br>
+          ${i.restriction ? `<em>${esc(i.restriction)}</em><br>` : ""}
+          Zeitraum: ${esc(i.zeitraum || `${fmtDate(i.von)} - ${fmtDate(i.bis)}`)}<br>
+          ${i.auftraggeber ? `Auftraggeber: ${esc(i.auftraggeber)}` : ""}
+        `;
+        const m = L.marker([i.lat, i.lon], { icon: buildMarker(i.status) }).bindPopup(popup);
+        m.addTo(markerLayer);
+        bounds.push([i.lat, i.lon]);
+        i._marker = m;
+      });
+
+      if (bounds.length) {
+        map.fitBounds(bounds, { padding: [24,24], maxZoom: 14 });
+      } else {
+        map.setView([51.49, 7.56], 12);
+      }
+    }
+
+    function renderList(items) {
+      if (!items.length) {
+        listEl.innerHTML = `<div class="empty">Keine Treffer für den gewählten Filter.</div>`;
+        return;
+      }
+
+      listEl.innerHTML = items.map(i => `
+        <article class="item" data-id="${esc(i.id)}" style="border-left-color:${statusColor(i.status)}">
+          <span class="tag" style="color:${statusColor(i.status)}">${statusLabel(i.status)}</span>
+          <p class="street">${esc(i.street)}</p>
+          <p class="desc">${esc(i.desc)}</p>
+          ${i.restriction ? `<p class="small">${esc(i.restriction)}</p>` : ""}
+          <p class="small" style="margin-top:8px">${esc(i.zeitraum || `${fmtDate(i.von)} - ${fmtDate(i.bis)}`)}</p>
+          ${i.auftraggeber ? `<p class="small">Auftraggeber: ${esc(i.auftraggeber)}</p>` : ""}
+        </article>
+      `).join("");
+
+      listEl.querySelectorAll(".item").forEach(el => {
+        el.addEventListener("click", () => {
+          const id = el.getAttribute("data-id");
+          const item = allItems.find(x => x.id === id);
+          if (!item || !item._marker) return;
+          map.setView([item.lat, item.lon], Math.max(map.getZoom(), 14), { animate: true });
+          item._marker.openPopup();
+        });
+      });
+    }
+
+    function rerender() {
+      const items = filteredItems();
+      renderMap(items);
+      renderList(items);
+      metaEl.textContent = `${items.length} Treffer · Bezirk: ${STADTBEZIRK} · Stand: ${new Date().toLocaleString("de-DE")}`;
+    }
+
+    async function loadData() {
+      try {
+        const url = new URL(API_BASE);
+        url.search = new URLSearchParams({
+          where: `stadtbezirk="${STADTBEZIRK}"`,
+          limit: "500"
+        }).toString();
+
+        const res = await fetch(url.toString(), { cache: "no-store" });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+        const data = await res.json();
+        const normalized = (data.results || []).map(normalizeRecord).filter(Boolean);
+
+        normalized.sort((a,b) => (a.von?.getTime() || 0) - (b.von?.getTime() || 0));
+
+        allItems = normalized;
+        updateCounts();
+        rerender();
+      } catch (err) {
+        console.error(err);
+        metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
+        listEl.innerHTML = `<div class="empty">Fehler beim Laden der Live-Daten. Bitte später erneut versuchen.</div>`;
+      }
+    }
+
+    document.querySelectorAll(".chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        rerender();
+      });
+    });
+
+    loadData();
+  </script>
+</body>
+</html>
