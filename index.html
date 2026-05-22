@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Baustellen-Radar Aplerbeck</title>
-  <meta name="description" content="Live-Baustellenkarte für den Stadtbezirk Dortmund-Aplerbeck auf Basis der Open-Data-Daten der Stadt Dortmund." />
+  <meta name="description" content="Live-Baustellenkarte für den Stadtbezirk Dortmund-Aplerbeck auf Basis offizieller Open-Data-Daten der Stadt Dortmund." />
 
   <link
     rel="stylesheet"
@@ -19,11 +19,10 @@
       --card:#ffffff;
       --text:#0f172a;
       --muted:#64748b;
-      --line:#e2e8f0;
+      --line:#d9e2ec;
       --primary:#1f8a92;
       --active:#c62828;
       --upcoming:#52b7c1;
-      --overdue:#e67e22;
     }
 
     * { box-sizing: border-box; }
@@ -35,51 +34,60 @@
     }
 
     .hero {
-      padding: 48px 16px 40px;
+      padding: 42px 16px 34px;
       color: #fff;
       background:
-        radial-gradient(900px 500px at 15% 20%, rgba(82,183,193,.45), transparent 55%),
-        radial-gradient(900px 500px at 85% 30%, rgba(255,166,0,.22), transparent 60%),
+        radial-gradient(900px 500px at 12% 22%, rgba(82,183,193,.45), transparent 56%),
+        radial-gradient(760px 420px at 84% 28%, rgba(255,166,0,.2), transparent 60%),
         linear-gradient(125deg,#2f6c7a 0%, #1f4258 45%, #1c2731 100%);
     }
+
     .hero-inner { max-width: 1120px; margin: 0 auto; }
+
     .pill {
-      display:inline-block;
-      border:1px solid rgba(255,255,255,.2);
-      background: rgba(255,255,255,.08);
+      display:inline-flex;
+      align-items:center;
+      border:1px solid rgba(255,255,255,.24);
+      background: rgba(255,255,255,.1);
       padding: 6px 12px;
       border-radius: 999px;
       font-size: 12px;
       margin-bottom: 14px;
+      gap: 6px;
     }
+
     h1 {
       margin: 0 0 10px;
       font-size: clamp(30px, 5vw, 54px);
       line-height: 1.1;
     }
+
     .sub {
       margin: 0;
-      color: rgba(255,255,255,.88);
-      font-size: clamp(15px,2.2vw,22px);
-      max-width: 900px;
+      color: rgba(255,255,255,.9);
+      font-size: clamp(16px,2.2vw,36px);
+      max-width: 920px;
+      line-height: 1.35;
     }
 
-    .wrap { max-width: 1120px; margin: 22px auto 34px; padding: 0 16px; }
+    .wrap { max-width: 1120px; margin: 20px auto 34px; padding: 0 16px; }
 
     .stats {
-      display: grid;
+      display:grid;
       grid-template-columns: repeat(3,minmax(0,1fr));
       gap: 10px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
+
     .stat {
       background: var(--card);
-      border: 1px solid var(--line);
+      border:1px solid var(--line);
       border-radius: 12px;
       padding: 12px;
-      text-align: center;
+      text-align:center;
     }
-    .stat .n { font-size: 24px; font-weight: 800; display:block; line-height:1; }
+
+    .stat .n { font-size: 34px; font-weight: 800; line-height: 1; display:block; }
     .stat small { color: var(--muted); }
 
     .toolbar {
@@ -94,18 +102,26 @@
       justify-content: space-between;
       gap: 10px;
     }
+
     .filters { display:flex; flex-wrap:wrap; gap:8px; }
+
     .chip {
-      border:1px solid var(--line);
+      border:1px solid #cfd8e3;
       background:#fff;
       color:#0f172a;
       border-radius: 999px;
       padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 600;
+      font-size: 14px;
+      font-weight: 700;
       cursor: pointer;
     }
-    .chip.active { background: var(--primary); color:#fff; border-color:var(--primary);}
+
+    .chip.active {
+      background: var(--primary);
+      color:#fff;
+      border-color: var(--primary);
+    }
+
     .meta { font-size: 12px; color: var(--muted); }
 
     .map-card {
@@ -115,13 +131,16 @@
       overflow: hidden;
       margin-bottom: 14px;
     }
+
     #map { width:100%; height: 62vh; min-height: 360px; max-height: 760px; }
 
     .list {
       display:grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px,1fr));
+      grid-template-columns: repeat(auto-fill, minmax(290px,1fr));
       gap: 12px;
+      margin-bottom: 12px;
     }
+
     .item {
       background: var(--card);
       border:1px solid var(--line);
@@ -129,20 +148,29 @@
       border-radius: 12px;
       padding: 12px;
       cursor: pointer;
+      transition: box-shadow .15s ease, transform .15s ease;
     }
-    .item:hover { border-color:#cbd5e1; }
+
+    .item:hover {
+      box-shadow: 0 6px 18px rgba(15,23,42,.08);
+      transform: translateY(-1px);
+    }
+
     .tag {
       font-size: 11px;
-      font-weight: 700;
+      font-weight: 800;
       letter-spacing: .04em;
       text-transform: uppercase;
       margin-bottom: 8px;
       display:inline-block;
     }
-    .street { font-weight: 800; margin: 0 0 8px; }
-    .desc { margin: 0 0 6px; color:#334155; font-size: 14px; line-height:1.35; }
+
+    .street { font-weight: 800; margin: 0 0 8px; font-size: 20px; }
+    .desc { margin: 0 0 6px; color:#334155; font-size: 14px; line-height:1.38; }
     .small { margin: 0; color: var(--muted); font-size: 12px; }
+
     .empty {
+      grid-column: 1 / -1;
       background: var(--card);
       border:1px dashed #cbd5e1;
       color: var(--muted);
@@ -151,12 +179,24 @@
       text-align: center;
     }
 
-    .legend {
-      margin-top: 14px;
-      display:grid;
-      grid-template-columns: repeat(3,minmax(0,1fr));
-      gap:10px;
+    .note {
+      background: #eef4f8;
+      border:1px solid #d5e3ec;
+      border-radius: 12px;
+      padding: 12px;
+      color:#3d4f64;
+      font-size: 13px;
+      line-height: 1.4;
+      margin-top: 8px;
     }
+
+    .legend {
+      margin-top: 12px;
+      display:grid;
+      grid-template-columns: repeat(2,minmax(0,1fr));
+      gap: 10px;
+    }
+
     .legend > div {
       background: var(--card);
       border:1px solid var(--line);
@@ -171,45 +211,51 @@
       vertical-align: middle;
     }
 
-    .leaflet-div-icon {
-      background: transparent;
-      border: 0;
-    }
     .marker {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       border-radius: 50%;
       border: 2px solid #fff;
-      box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+      box-shadow: 0 0 0 1px rgba(0,0,0,.2);
     }
+
     .marker.active { background: var(--active); }
     .marker.upcoming { background: var(--upcoming); }
-    .marker.overdue { background: var(--overdue); }
+
+    .leaflet-popup-content { margin: 10px 12px; line-height: 1.35; }
 
     @media (max-width: 780px){
       .stats { grid-template-columns: 1fr; }
       .legend { grid-template-columns: 1fr; }
       #map { height: 52vh; min-height: 320px; }
+      .street { font-size: 17px; }
     }
   </style>
 </head>
 <body>
   <header class="hero">
     <div class="hero-inner">
-      <span class="pill">Baustellen-Radar</span>
+      <span class="pill">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="2" y="6" width="20" height="8" rx="1"></rect>
+          <path d="M17 14v7"></path><path d="M7 14v7"></path>
+          <path d="M17 3v3"></path><path d="M7 3v3"></path>
+          <path d="M10 14 2.3 6.3"></path><path d="m14 6 7.7 7.7"></path><path d="m8 6 8 8"></path>
+        </svg>
+        Baustellen-Radar
+      </span>
       <h1>Baustellen in Aplerbeck</h1>
       <p class="sub">
-        Live-Übersicht der gemeldeten Baustellen im Stadtbezirk Dortmund-Aplerbeck
-        auf Basis der Open-Data-Daten der Stadt Dortmund.
+        Live-Übersicht der gemeldeten Baustellen im Stadtbezirk Dortmund-Aplerbeck auf Basis der Open-Data-Daten der Stadt Dortmund.
       </p>
     </div>
   </header>
 
   <main class="wrap">
     <section class="stats">
+      <article class="stat"><span class="n" id="n-total">0</span><small>Gesamt</small></article>
       <article class="stat"><span class="n" id="n-active">0</span><small>Aktiv</small></article>
       <article class="stat"><span class="n" id="n-upcoming">0</span><small>Bevorstehend</small></article>
-      <article class="stat"><span class="n" id="n-overdue">0</span><small>Überfällig?</small></article>
     </section>
 
     <section class="toolbar">
@@ -217,7 +263,6 @@
         <button class="chip active" data-filter="all">Alle</button>
         <button class="chip" data-filter="active">Aktiv</button>
         <button class="chip" data-filter="upcoming">Bevorstehend</button>
-        <button class="chip" data-filter="overdue">Überfällig?</button>
       </div>
       <div class="meta" id="meta">Lade Daten…</div>
     </section>
@@ -228,14 +273,20 @@
 
     <section id="list" class="list"></section>
 
+    <div class="note">
+      Quelle: Stadt Dortmund Open Data (Tiefbauamt), Datensätze
+      <strong>Baustellen tagesaktuell - Flächen</strong> und
+      <strong>Baustellen geplant - Flächen</strong>.
+      Der rote Rahmen zeigt die Grenze des Stadtbezirks Aplerbeck (Datensatz Stadtbezirke).
+    </div>
+
     <section class="legend">
-      <div><span class="dot" style="background:var(--active)"></span><strong>Aktiv:</strong> Baustelle läuft aktuell.</div>
-      <div><span class="dot" style="background:var(--upcoming)"></span><strong>Bevorstehend:</strong> Startdatum liegt in der Zukunft.</div>
-      <div><span class="dot" style="background:var(--overdue)"></span><strong>Überfällig?:</strong> Enddatum liegt in der Vergangenheit.</div>
+      <div><span class="dot" style="background:var(--active)"></span><strong>Aktiv:</strong> aktuell laufende Maßnahmen</div>
+      <div><span class="dot" style="background:var(--upcoming)"></span><strong>Bevorstehend:</strong> geplante, noch nicht gestartete Maßnahmen</div>
     </section>
 
-    <p class="meta" style="margin-top:14px">
-      Quelle: Open Data Dortmund – Datensatz „fb66-baustellen-tagesaktuell“.
+    <p class="meta" style="margin-top:12px">
+      Kartendaten: &copy; OpenStreetMap-Mitwirkende
     </p>
   </main>
 
@@ -246,27 +297,48 @@
   ></script>
 
   <script>
-    const STADTBEZIRK = "Aplerbeck";
-    const API_BASE = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/records";
+    const DISTRICT = "Aplerbeck";
 
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    const URL_LIVE_AREAS =
+      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell-flachen/records";
+    const URL_PLANNED_AREAS =
+      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-geplant-flachen/records";
+    const URL_DISTRICT_BORDER =
+      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb62-stadtbezirke/records";
 
     const map = L.map("map", { zoomControl: true }).setView([51.49, 7.56], 12);
+
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap-Mitwirkende'
+      attribution: "&copy; OpenStreetMap-Mitwirkende"
     }).addTo(map);
 
-    const markerLayer = L.layerGroup().addTo(map);
+    map.createPane("districtPane");
+    map.getPane("districtPane").style.zIndex = 430;
+
+    map.createPane("sitePane");
+    map.getPane("sitePane").style.zIndex = 440;
+
+    map.createPane("markerPane");
+    map.getPane("markerPane").style.zIndex = 450;
+
+    const districtLayerGroup = L.layerGroup().addTo(map);
+    const siteLayerGroup = L.layerGroup().addTo(map);
+
     const listEl = document.getElementById("list");
     const metaEl = document.getElementById("meta");
+
     let allItems = [];
     let currentFilter = "all";
+    let districtBounds = null;
 
     function esc(str) {
-      return String(str ?? "").replace(/[&<>"']/g, s => ({
-        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+      return String(str ?? "").replace(/[&<>"']/g, (s) => ({
+        "&":"&amp;",
+        "<":"&lt;",
+        ">":"&gt;",
+        '"':"&quot;",
+        "'":"&#39;"
       })[s]);
     }
 
@@ -280,38 +352,11 @@
       return d ? d.toLocaleDateString("de-DE") : "k. A.";
     }
 
-    function getStatus(von, bis) {
-      if (von && von > today) return "upcoming";
-      if (bis && bis < today) return "overdue";
-      return "active";
-    }
-
-    function statusLabel(s) {
-      if (s === "active") return "Aktiv";
-      if (s === "upcoming") return "Bevorstehend";
-      return "Überfällig?";
-    }
-
-    function statusColor(s) {
-      if (s === "active") return "var(--active)";
-      if (s === "upcoming") return "var(--upcoming)";
-      return "var(--overdue)";
-    }
-
-    function buildMarker(status) {
-      return L.divIcon({
-        className: "",
-        html: `<div class="marker ${status}"></div>`,
-        iconSize: [16,16],
-        iconAnchor: [8,8]
-      });
-    }
-
     function parseMeasure(text) {
       const raw = (text || "Baustelle").trim();
-
       let street = raw;
       let details = raw;
+
       const firstDash = raw.indexOf(" - ");
       if (firstDash > -1) {
         street = raw.slice(0, firstDash).trim();
@@ -319,6 +364,7 @@
       }
 
       const parts = details.split(/\s*\/\/\/?\s*/).map(x => x.trim()).filter(Boolean);
+
       return {
         street,
         desc: parts[0] || details,
@@ -326,29 +372,90 @@
       };
     }
 
-    function normalizeRecord(r) {
+    function statusLabel(status) {
+      return status === "upcoming" ? "Bevorstehend" : "Aktiv";
+    }
+
+    function statusColor(status) {
+      return status === "upcoming" ? "var(--upcoming)" : "var(--active)";
+    }
+
+    function getSiteStyle(status) {
+      if (status === "upcoming") {
+        return {
+          pane: "sitePane",
+          color: "#319fb1",
+          weight: 2,
+          dashArray: "5 4",
+          fillColor: "#52b7c1",
+          fillOpacity: 0.24
+        };
+      }
+      return {
+        pane: "sitePane",
+        color: "#a91f1f",
+        weight: 2,
+        fillColor: "#c62828",
+        fillOpacity: 0.25
+      };
+    }
+
+    function toFeature(shape) {
+      if (!shape || typeof shape !== "object") return null;
+      if (shape.type === "Feature" && shape.geometry) return shape;
+      if ((shape.type === "Polygon" || shape.type === "MultiPolygon") && shape.coordinates) {
+        return { type: "Feature", geometry: shape, properties: {} };
+      }
+      if (shape.geometry) {
+        return { type: "Feature", geometry: shape.geometry, properties: shape.properties || {} };
+      }
+      return null;
+    }
+
+    function normalizeRecord(r, sourceType) {
       const coord = r.geografische_koordinate || r.geo_point_2d || {};
       const lat = Number(coord.lat);
       const lon = Number(coord.lon);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
 
       const parsed = parseMeasure(r.art_der_baumassnahme);
       const von = parseDate(r.von);
       const bis = parseDate(r.bis);
-      const status = getStatus(von, bis);
+
+      const idParts = [
+        sourceType,
+        parsed.street || "",
+        r.von || "",
+        r.bis || "",
+        Number.isFinite(lat) ? lat.toFixed(6) : "",
+        Number.isFinite(lon) ? lon.toFixed(6) : ""
+      ];
 
       return {
-        __src: r.__src || "",
-        id: `${lat}-${lon}-${parsed.street}`,
-        lat, lon,
+        id: idParts.join("|"),
+        status: sourceType === "planned" ? "upcoming" : "active",
         street: parsed.street,
         desc: parsed.desc,
         restriction: parsed.restriction || (r.einschrankung || ""),
         auftraggeber: r.auftraggeber || "",
-        von, bis,
         zeitraum: r.zeitraum || "",
-        status
+        von,
+        bis,
+        lat: Number.isFinite(lat) ? lat : null,
+        lon: Number.isFinite(lon) ? lon : null,
+        geoShape: r.geo_shape || null,
+        _layer: null
       };
+    }
+
+    function popupHtml(item) {
+      return `
+        <strong>${esc(item.street)}</strong><br>
+        ${esc(item.desc)}<br>
+        ${item.restriction ? `<em>${esc(item.restriction)}</em><br>` : ""}
+        Zeitraum: ${esc(item.zeitraum || `${fmtDate(item.von)} - ${fmtDate(item.bis)}`)}<br>
+        ${item.auftraggeber ? `Auftraggeber: ${esc(item.auftraggeber)}<br>` : ""}
+        Status: ${esc(statusLabel(item.status))}
+      `;
     }
 
     function filteredItems() {
@@ -357,35 +464,64 @@
     }
 
     function updateCounts() {
-      const c = { active:0, upcoming:0, overdue:0 };
-      allItems.forEach(i => c[i.status]++);
+      const c = { active: 0, upcoming: 0 };
+      allItems.forEach((i) => { c[i.status]++; });
+
+      document.getElementById("n-total").textContent = allItems.length;
       document.getElementById("n-active").textContent = c.active;
       document.getElementById("n-upcoming").textContent = c.upcoming;
-      document.getElementById("n-overdue").textContent = c.overdue;
     }
 
     function renderMap(items) {
-      markerLayer.clearLayers();
-      const bounds = [];
+      siteLayerGroup.clearLayers();
 
-      items.forEach(i => {
-        const popup = `
-          <strong>${esc(i.street)}</strong><br>
-          ${esc(i.desc)}<br>
-          ${i.restriction ? `<em>${esc(i.restriction)}</em><br>` : ""}
-          Zeitraum: ${esc(i.zeitraum || `${fmtDate(i.von)} - ${fmtDate(i.bis)}`)}<br>
-          ${i.auftraggeber ? `Auftraggeber: ${esc(i.auftraggeber)}` : ""}
-        `;
-        const m = L.marker([i.lat, i.lon], { icon: buildMarker(i.status) }).bindPopup(popup);
-        m.addTo(markerLayer);
-        bounds.push([i.lat, i.lon]);
-        i._marker = m;
+      const boundsGroup = L.featureGroup();
+
+      items.forEach((item) => {
+        const popup = popupHtml(item);
+        const feature = toFeature(item.geoShape);
+
+        if (feature && feature.geometry) {
+          const gj = L.geoJSON(feature, {
+            style: getSiteStyle(item.status)
+          });
+
+          gj.eachLayer((layer) => {
+            layer.bindPopup(popup);
+            layer.on("click", () => {
+              if (layer.getBounds && layer.getBounds().isValid()) {
+                map.fitBounds(layer.getBounds(), { padding: [20, 20], maxZoom: 16 });
+              }
+            });
+          });
+
+          gj.addTo(siteLayerGroup);
+          boundsGroup.addLayer(gj);
+          item._layer = gj;
+          return;
+        }
+
+        if (item.lat != null && item.lon != null) {
+          const marker = L.marker([item.lat, item.lon], {
+            pane: "markerPane",
+            icon: L.divIcon({
+              className: "",
+              html: `<div class="marker ${item.status === "upcoming" ? "upcoming" : "active"}"></div>`,
+              iconSize: [14, 14],
+              iconAnchor: [7, 7]
+            })
+          }).bindPopup(popup);
+
+          marker.addTo(siteLayerGroup);
+          boundsGroup.addLayer(marker);
+          item._layer = marker;
+        }
       });
 
-      if (bounds.length) {
-        map.fitBounds(bounds, { padding: [24,24], maxZoom: 14 });
-      } else {
-        map.setView([51.49, 7.56], 12);
+      if (boundsGroup.getLayers().length) {
+        map.fitBounds(boundsGroup.getBounds(), { padding: [20, 20], maxZoom: 14 });
+      } else if (districtBounds && districtBounds.isValid()) {
+        map.fitBounds(districtBounds, { padding: [20, 20], maxZoom: 13 });
       }
     }
 
@@ -395,24 +531,41 @@
         return;
       }
 
-      listEl.innerHTML = items.map(i => `
-        <article class="item" data-id="${esc(i.id)}" style="border-left-color:${statusColor(i.status)}">
-          <span class="tag" style="color:${statusColor(i.status)}">${statusLabel(i.status)}</span>
-          <p class="street">${esc(i.street)}</p>
-          <p class="desc">${esc(i.desc)}</p>
-          ${i.restriction ? `<p class="small">${esc(i.restriction)}</p>` : ""}
-          <p class="small" style="margin-top:8px">${esc(i.zeitraum || `${fmtDate(i.von)} - ${fmtDate(i.bis)}`)}</p>
-          ${i.auftraggeber ? `<p class="small">Auftraggeber: ${esc(i.auftraggeber)}</p>` : ""}
+      listEl.innerHTML = items.map((item) => `
+        <article class="item" data-id="${esc(item.id)}" style="border-left-color:${statusColor(item.status)}">
+          <span class="tag" style="color:${statusColor(item.status)}">${statusLabel(item.status)}</span>
+          <p class="street">${esc(item.street)}</p>
+          <p class="desc">${esc(item.desc)}</p>
+          ${item.restriction ? `<p class="small">${esc(item.restriction)}</p>` : ""}
+          <p class="small" style="margin-top:8px">${esc(item.zeitraum || `${fmtDate(item.von)} - ${fmtDate(item.bis)}`)}</p>
+          ${item.auftraggeber ? `<p class="small">Auftraggeber: ${esc(item.auftraggeber)}</p>` : ""}
         </article>
       `).join("");
 
-      listEl.querySelectorAll(".item").forEach(el => {
+      listEl.querySelectorAll(".item").forEach((el) => {
         el.addEventListener("click", () => {
           const id = el.getAttribute("data-id");
-          const item = allItems.find(x => x.id === id);
-          if (!item || !item._marker) return;
-          map.setView([item.lat, item.lon], Math.max(map.getZoom(), 14), { animate: true });
-          item._marker.openPopup();
+          const item = allItems.find((x) => x.id === id);
+          if (!item || !item._layer) return;
+
+          if (item._layer.getBounds && item._layer.getBounds().isValid()) {
+            map.fitBounds(item._layer.getBounds(), { padding: [24, 24], maxZoom: 16 });
+            let opened = false;
+            if (item._layer.eachLayer) {
+              item._layer.eachLayer((ly) => {
+                if (!opened && ly.openPopup) {
+                  ly.openPopup();
+                  opened = true;
+                }
+              });
+            }
+            return;
+          }
+
+          if (item.lat != null && item.lon != null) {
+            map.setView([item.lat, item.lon], Math.max(map.getZoom(), 15), { animate: true });
+            if (item._layer.openPopup) item._layer.openPopup();
+          }
         });
       });
     }
@@ -421,58 +574,110 @@
       const items = filteredItems();
       renderMap(items);
       renderList(items);
-      metaEl.textContent = `${items.length} Treffer · Bezirk: ${STADTBEZIRK} · Stand: ${new Date().toLocaleString("de-DE")}`;
+
+      metaEl.textContent =
+        `${items.length} Treffer · Bezirk: ${DISTRICT} · Stand: ${new Date().toLocaleString("de-DE")}`;
+    }
+
+    async function loadDistrictBorder() {
+      try {
+        const url = new URL(URL_DISTRICT_BORDER);
+        url.search = new URLSearchParams({
+          where: `stadtbezirk_bezeichnung="${DISTRICT}"`,
+          limit: "1"
+        }).toString();
+
+        const res = await fetch(url.toString(), { cache: "no-store" });
+        if (!res.ok) return;
+
+        const json = await res.json();
+        const row = (json.results || [])[0];
+        if (!row || !row.geografische_polygone) return;
+
+        const borderFeature = toFeature(row.geografische_polygone);
+        if (!borderFeature) return;
+
+        districtLayerGroup.clearLayers();
+
+        const districtLayer = L.geoJSON(borderFeature, {
+          pane: "districtPane",
+          style: {
+            color: "#9b1c1c",
+            weight: 3,
+            opacity: 0.95,
+            fillOpacity: 0
+          }
+        }).addTo(districtLayerGroup);
+
+        if (districtLayer.getBounds && districtLayer.getBounds().isValid()) {
+          districtBounds = districtLayer.getBounds();
+        }
+      } catch (_) {}
     }
 
     async function loadData() {
-  try {
-    const qs = "where=" + encodeURIComponent('stadtbezirk="Aplerbeck"') + "&limit=100";
+      try {
+        const activeUrl = new URL(URL_LIVE_AREAS);
+        activeUrl.search = new URLSearchParams({
+          where: `stadtbezirk="${DISTRICT}"`,
+          limit: "100"
+        }).toString();
 
-    const [liveRes, planRes] = await Promise.all([
-      fetch("https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/records?" + qs, { cache: "no-store" }),
-      fetch("https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-geplant/records?" + qs, { cache: "no-store" })
-    ]);
+        const plannedUrl = new URL(URL_PLANNED_AREAS);
+        plannedUrl.search = new URLSearchParams({
+          where: `stadtbezirk_bezeichnung="${DISTRICT}"`,
+          limit: "100"
+        }).toString();
 
-    if (!liveRes.ok) throw new Error("tagesaktuell HTTP " + liveRes.status);
-    if (!planRes.ok) throw new Error("geplant HTTP " + planRes.status);
+        const [activeRes, plannedRes] = await Promise.all([
+          fetch(activeUrl.toString(), { cache: "no-store" }),
+          fetch(plannedUrl.toString(), { cache: "no-store" })
+        ]);
 
-    const liveJson = await liveRes.json();
-    const planJson = await planRes.json();
+        if (!activeRes.ok && !plannedRes.ok) {
+          throw new Error("Beide Datenquellen nicht erreichbar");
+        }
 
-    const liveRows = (liveJson.results || []).map(r => ({ ...r, __src: "live" }));
-    const planRows = (planJson.results || []).map(r => ({ ...r, __src: "planned" }));
+        const activeJson = activeRes.ok ? await activeRes.json() : { results: [] };
+        const plannedJson = plannedRes.ok ? await plannedRes.json() : { results: [] };
 
-    const normalized = [...liveRows, ...planRows]
-      .map(normalizeRecord)
-      .filter(Boolean)
-      .map(i => {
-        // Einträge aus "geplant" immer als bevorstehend anzeigen
-        if (i.__src === "planned") i.status = "upcoming";
-        return i;
-      });
+        const activeRows = (activeJson.results || []).map((r) => normalizeRecord(r, "active"));
+        const plannedRows = (plannedJson.results || []).map((r) => normalizeRecord(r, "planned"));
 
-    normalized.sort((a, b) => (a.von?.getTime() || 0) - (b.von?.getTime() || 0));
+        allItems = [...activeRows, ...plannedRows]
+          .filter(Boolean)
+          .sort((a, b) => {
+            const av = a.von ? a.von.getTime() : 0;
+            const bv = b.von ? b.von.getTime() : 0;
+            return av - bv;
+          });
 
-    allItems = normalized;
-    updateCounts();
-    rerender();
-  } catch (err) {
-    console.error(err);
-    metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
-    listEl.innerHTML = `<div class="empty">Fehler beim Laden der Live-Daten. Bitte später erneut versuchen.</div>`;
-  }
-}
+        updateCounts();
+        rerender();
+      } catch (err) {
+        console.error(err);
+        metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
+        listEl.innerHTML = `<div class="empty">Fehler beim Laden der Daten. Bitte später erneut versuchen.</div>`;
+      }
+    }
 
-    document.querySelectorAll(".chip").forEach(btn => {
+    document.querySelectorAll(".chip").forEach((btn) => {
       btn.addEventListener("click", () => {
-        document.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".chip").forEach((b) => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.dataset.filter;
         rerender();
       });
     });
 
-    loadData();
+    (async function init() {
+      await loadDistrictBorder();
+      await loadData();
+
+      if (districtBounds && districtBounds.isValid()) {
+        map.fitBounds(districtBounds, { padding: [20, 20], maxZoom: 13 });
+      }
+    })();
   </script>
 </body>
 </html>
