@@ -424,30 +424,45 @@
     }
 
     async function loadData() {
-      try {
-        const url = new URL(API_BASE);
-        url.search = new URLSearchParams({
-          where: `stadtbezirk="${STADTBEZIRK}"`,
-          limit: "500"
-        }).toString();
+    const endpoints = [
+      // Versuch 1: direkt gefilterte Records
+      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/records?where=" +
+      encodeURIComponent("stadtbezirk='Aplerbeck'") + "&limit=500",
 
-        const res = await fetch(url.toString(), { cache: "no-store" });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      // Versuch 2: kompletter JSON-Export (danach lokal filtern)
+      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/exports/json"
+    ];
 
-        const data = await res.json();
-        const normalized = (data.results || []).map(normalizeRecord).filter(Boolean);
+    try {
+      let raw = null;
 
-        normalized.sort((a,b) => (a.von?.getTime() || 0) - (b.von?.getTime() || 0));
-
-        allItems = normalized;
-        updateCounts();
-        rerender();
-      } catch (err) {
-        console.error(err);
-        metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
-        listEl.innerHTML = `<div class="empty">Fehler beim Laden der Live-Daten. Bitte später erneut versuchen.</div>`;
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, { cache: "no-store" });
+          if (!res.ok) continue;
+          raw = await res.json();
+          if (raw) break;
+        } catch (_) {}
       }
+
+      if (!raw) throw new Error("Kein Endpoint erreichbar");
+
+      const rows = Array.isArray(raw)
+        ? raw.filter(r => (r.stadtbezirk || "").toLowerCase() === "aplerbeck")
+        : (raw.results || []);
+
+      const normalized = rows.map(normalizeRecord).filter(Boolean);
+      normalized.sort((a, b) => (a.von?.getTime() || 0) - (b.von?.getTime() || 0));
+
+      allItems = normalized;
+      updateCounts();
+      rerender();
+    } catch (err) {
+      console.error(err);
+      metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
+      listEl.innerHTML = `<div class="empty">Fehler beim Laden der Live-Daten. Bitte später erneut versuchen.</div>`;
     }
+  }
 
     document.querySelectorAll(".chip").forEach(btn => {
       btn.addEventListener("click", () => {
