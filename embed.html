@@ -205,7 +205,6 @@
   ></script>
   <script>
     const DISTRICT = "Aplerbeck";
-
     const URL_ACTIVE = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell-flachen/records";
     const URL_UPCOMING = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-geplant-flachen/records";
     const URL_BORDER = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb62-stadtbezirke/records";
@@ -237,6 +236,25 @@
       const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
       parent.postMessage({ type: "baustellen-embed-height", height: h }, "*");
     }
+
+    window.addEventListener("message", function (e) {
+      if (!e.data || e.data.type !== "baustellen-embed-request-height") return;
+      sendHeightToParent();
+    });
+
+    function scheduleHeightPings() {
+      sendHeightToParent();
+      setTimeout(sendHeightToParent, 120);
+      setTimeout(sendHeightToParent, 400);
+      setTimeout(sendHeightToParent, 900);
+      setTimeout(sendHeightToParent, 1600);
+    }
+
+    window.addEventListener("load", scheduleHeightPings);
+    window.addEventListener("resize", scheduleHeightPings);
+
+    const heightObserver = new MutationObserver(() => sendHeightToParent());
+    heightObserver.observe(document.body, { childList: true, subtree: true });
 
     function esc(s) {
       return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -495,9 +513,6 @@
         rerender();
       });
     });
-
-    window.addEventListener("load", sendHeightToParent);
-    window.addEventListener("resize", sendHeightToParent);
 
     loadAll().catch(() => {
       metaEl.textContent = "Fehler beim Laden der Daten.";
