@@ -11,63 +11,191 @@
     crossorigin=""
   />
   <style>
-    html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family: Inter, system-ui, Arial, sans-serif; }
-    #map { width:100%; height:100%; }
+    :root{
+      --bg:#f4f6fa;
+      --card:#ffffff;
+      --line:#d9e2ec;
+      --text:#0f172a;
+      --muted:#64748b;
+      --active:#c62828;
+      --upcoming:#52b7c1;
+      --chip:#1f8a92;
+    }
+
+    * { box-sizing:border-box; }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,Arial,sans-serif; }
+
+    .wrap { max-width:1200px; margin:0 auto; padding:12px; }
+
+    .map-card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      overflow:hidden;
+      margin-bottom:12px;
+      position:relative;
+    }
+
+    #map { width:100%; height:64vh; min-height:360px; max-height:760px; }
 
     .panel {
-      position:absolute; top:12px; left:12px; z-index:1000;
-      background:rgba(255,255,255,.94); backdrop-filter: blur(4px);
-      border:1px solid #d9e2ec; border-radius:12px; padding:10px; min-width:280px;
+      position:absolute;
+      top:12px; left:12px; z-index:1000;
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--line);
+      border-radius:12px;
       box-shadow:0 8px 22px rgba(0,0,0,.15);
+      padding:10px;
+      min-width:290px;
     }
 
-    .title { margin:0 0 8px; font-size:14px; font-weight:800; color:#0f172a; }
-    .stats { display:flex; gap:8px; margin-bottom:8px; }
-    .stat { background:#fff; border:1px solid #d9e2ec; border-radius:999px; padding:4px 8px; font-size:12px; font-weight:700; color:#334155; }
+    .title { margin:0 0 8px; font-size:18px; font-weight:800; }
+    .stats { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+    .stat {
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:999px;
+      padding:4px 8px;
+      font-size:12px;
+      font-weight:700;
+      color:#334155;
+    }
+
     .filters { display:flex; gap:6px; flex-wrap:wrap; }
     .chip {
-      border:1px solid #cfd8e3; background:#fff; color:#0f172a;
-      border-radius:999px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer;
+      border:1px solid #cfd8e3;
+      background:#fff;
+      color:#0f172a;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:12px;
+      font-weight:700;
+      cursor:pointer;
     }
-    .chip.active { background:#1f8a92; border-color:#1f8a92; color:#fff; }
+    .chip.active { background:var(--chip); color:#fff; border-color:var(--chip); }
 
     .legend {
-      position:absolute; bottom:12px; left:12px; z-index:1000;
-      background:rgba(255,255,255,.94); border:1px solid #d9e2ec; border-radius:10px; padding:8px 10px;
-      font-size:12px; color:#334155;
+      position:absolute;
+      left:12px; bottom:12px; z-index:1000;
+      background:rgba(255,255,255,.94);
+      border:1px solid var(--line);
+      border-radius:10px;
+      padding:8px 10px;
+      font-size:12px;
+      color:#334155;
     }
-    .legend .row { display:flex; align-items:center; gap:6px; margin:3px 0; }
+    .row { display:flex; align-items:center; gap:6px; margin:2px 0; }
     .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+    .meta {
+      margin-top:8px;
+      font-size:12px;
+      color:var(--muted);
+    }
+
+    .list-card {
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+    }
+
+    .list-head {
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      align-items:center;
+      margin-bottom:10px;
+      flex-wrap:wrap;
+    }
+
+    .list-head h3 {
+      margin:0;
+      font-size:16px;
+    }
+
+    .hint { font-size:12px; color:var(--muted); }
+
+    .grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill,minmax(280px,1fr));
+      gap:10px;
+    }
+
+    .item {
+      background:#fff;
+      border:1px solid var(--line);
+      border-left:4px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      cursor:pointer;
+    }
+
+    .item:hover { box-shadow:0 5px 14px rgba(15,23,42,.08); }
+
+    .tag {
+      font-size:11px;
+      font-weight:800;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      margin-bottom:6px;
+      display:inline-block;
+    }
+
+    .street { margin:0 0 6px; font-size:22px; font-weight:800; }
+    .desc { margin:0 0 4px; color:#334155; font-size:14px; line-height:1.35; }
+    .small { margin:0; font-size:12px; color:#64748b; line-height:1.35; }
+
+    .empty {
+      border:1px dashed #cbd5e1;
+      border-radius:12px;
+      padding:14px;
+      text-align:center;
+      color:#64748b;
+    }
 
     .marker-pin { width:34px; height:44px; display:block; filter:drop-shadow(0 3px 6px rgba(0,0,0,.28)); }
 
     @media (max-width: 760px) {
-      .panel { min-width:0; right:12px; left:12px; }
-      .title { font-size:13px; }
-      .stat, .chip { font-size:11px; }
+      .panel { left:10px; right:10px; min-width:0; }
+      .title { font-size:14px; }
+      .street { font-size:16px; }
     }
   </style>
 </head>
 <body>
-  <div id="map"></div>
+  <div class="wrap">
+    <section class="map-card">
+      <div id="map"></div>
 
-  <div class="panel">
-    <p class="title">Baustellen-Radar Aplerbeck</p>
-    <div class="stats">
-      <span class="stat" id="s-total">Gesamt: 0</span>
-      <span class="stat" id="s-active">Aktiv: 0</span>
-      <span class="stat" id="s-upcoming">Geplant: 0</span>
-    </div>
-    <div class="filters">
-      <button class="chip active" data-filter="all">Alle</button>
-      <button class="chip" data-filter="active">Aktiv</button>
-      <button class="chip" data-filter="upcoming">Geplant</button>
-    </div>
-  </div>
+      <div class="panel">
+        <p class="title">Baustellen-Radar Aplerbeck</p>
+        <div class="stats">
+          <span class="stat" id="s-total">Gesamt: 0</span>
+          <span class="stat" id="s-active">Aktiv: 0</span>
+          <span class="stat" id="s-upcoming">Geplant: 0</span>
+        </div>
+        <div class="filters">
+          <button class="chip active" data-filter="all">Alle</button>
+          <button class="chip" data-filter="active">Aktiv</button>
+          <button class="chip" data-filter="upcoming">Geplant</button>
+        </div>
+        <div class="meta" id="meta">Lade Daten…</div>
+      </div>
 
-  <div class="legend">
-    <div class="row"><span class="dot" style="background:#c62828"></span>Aktiv</div>
-    <div class="row"><span class="dot" style="background:#52b7c1"></span>Geplant</div>
+      <div class="legend">
+        <div class="row"><span class="dot" style="background:#c62828"></span>Aktiv</div>
+        <div class="row"><span class="dot" style="background:#52b7c1"></span>Geplant</div>
+      </div>
+    </section>
+
+    <section class="list-card">
+      <div class="list-head">
+        <h3>Baustellen im Filter</h3>
+        <div class="hint" id="list-hint">Klick auf Karte oder Eintrag springt jeweils zum anderen.</div>
+      </div>
+      <div id="list" class="grid"></div>
+    </section>
   </div>
 
   <script
@@ -77,11 +205,12 @@
   ></script>
   <script>
     const DISTRICT = "Aplerbeck";
+
     const URL_ACTIVE = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell-flachen/records";
     const URL_UPCOMING = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-geplant-flachen/records";
     const URL_BORDER = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb62-stadtbezirke/records";
 
-    const map = L.map("map", { zoomControl:true, attributionControl:true }).setView([51.49, 7.56], 12);
+    const map = L.map("map", { zoomControl:true }).setView([51.49, 7.56], 12);
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       maxZoom: 19,
       attribution: "&copy; OpenStreetMap-Mitwirkende"
@@ -99,6 +228,15 @@
     let allItems = [];
     let currentFilter = "all";
     let districtFeature = null;
+
+    const metaEl = document.getElementById("meta");
+    const listEl = document.getElementById("list");
+    const listHintEl = document.getElementById("list-hint");
+
+    function sendHeightToParent() {
+      const h = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight);
+      parent.postMessage({ type: "baustellen-embed-height", height: h }, "*");
+    }
 
     function esc(s) {
       return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
@@ -140,13 +278,13 @@
       return L.divIcon({ className:"", html:svg, iconSize:[34,44], iconAnchor:[17,42], popupAnchor:[0,-36] });
     }
 
-    function styleFor(status) {
+    function shapeStyle(status) {
       return status === "upcoming"
         ? { pane:"shapePane", color:"#2b95b3", weight:2, dashArray:"5 4", fillColor:"#52b7c1", fillOpacity:.20 }
         : { pane:"shapePane", color:"#a91f1f", weight:2, fillColor:"#c62828", fillOpacity:.20 };
     }
 
-    function popup(item) {
+    function popupHtml(item) {
       return `
         <strong>${esc(item.street)}</strong><br>
         ${esc(item.desc)}<br>
@@ -157,24 +295,28 @@
       `;
     }
 
-    function normalize(r, source) {
-      const p = parseMeasure(r.art_der_baumassnahme);
-      const coord = r.geografische_koordinate || r.geo_point_2d || {};
+    function normalize(record, source) {
+      const p = parseMeasure(record.art_der_baumassnahme);
+      const coord = record.geografische_koordinate || record.geo_point_2d || {};
       const lat = Number(coord.lat), lon = Number(coord.lon);
       return {
-        id: [source, p.street, r.von, r.bis, lat, lon].join("|"),
+        id: [source, p.street, record.von, record.bis, lat, lon].join("|"),
         status: source === "planned" ? "upcoming" : "active",
         street: p.street,
         desc: p.desc,
-        restriction: p.restriction || (r.einschrankung || ""),
-        auftraggeber: r.auftraggeber || "",
-        zeitraum: r.zeitraum || "",
-        geoShape: r.geo_shape || null,
+        restriction: p.restriction || (record.einschrankung || ""),
+        auftraggeber: record.auftraggeber || "",
+        zeitraum: record.zeitraum || "",
+        geoShape: record.geo_shape || null,
         lat: Number.isFinite(lat) ? lat : null,
         lon: Number.isFinite(lon) ? lon : null,
-        _shapeLayer: null,
-        _markerLayer: null
+        shapeLayer: null,
+        markerLayer: null
       };
+    }
+
+    function filteredItems() {
+      return currentFilter === "all" ? allItems : allItems.filter(i => i.status === currentFilter);
     }
 
     function updateStats() {
@@ -185,22 +327,18 @@
       document.getElementById("s-upcoming").textContent = `Geplant: ${upcoming}`;
     }
 
-    function filtered() {
-      return currentFilter === "all" ? allItems : allItems.filter(i => i.status === currentFilter);
-    }
-
-    function renderData() {
+    function renderMap(items) {
       dataGroup.clearLayers();
-      const fg = L.featureGroup();
+      const bounds = L.featureGroup();
 
-      filtered().forEach(item => {
-        const feat = toFeature(item.geoShape);
-        const content = popup(item);
+      items.forEach(item => {
+        const popup = popupHtml(item);
+        const feature = toFeature(item.geoShape);
 
-        if (feat && feat.geometry) {
-          const gj = L.geoJSON(feat, { style: styleFor(item.status), pane:"shapePane" });
+        if (feature && feature.geometry) {
+          const gj = L.geoJSON(feature, { style: shapeStyle(item.status), pane:"shapePane" });
           gj.eachLayer(layer => {
-            layer.bindPopup(content);
+            layer.bindPopup(popup);
             layer.on("click", () => {
               if (layer.getBounds && layer.getBounds().isValid()) {
                 map.fitBounds(layer.getBounds(), { padding:[18,18], maxZoom:16 });
@@ -208,19 +346,70 @@
             });
           });
           gj.addTo(dataGroup);
-          fg.addLayer(gj);
-          item._shapeLayer = gj;
+          bounds.addLayer(gj);
+          item.shapeLayer = gj;
         }
 
         if (item.lat != null && item.lon != null) {
-          const mk = L.marker([item.lat, item.lon], { pane:"markerPane", icon: markerIcon(item.status) }).bindPopup(content);
-          mk.addTo(dataGroup);
-          fg.addLayer(mk);
-          item._markerLayer = mk;
+          const marker = L.marker([item.lat, item.lon], { pane:"markerPane", icon: markerIcon(item.status) }).bindPopup(popup);
+          marker.addTo(dataGroup);
+          bounds.addLayer(marker);
+          item.markerLayer = marker;
         }
       });
 
-      if (fg.getLayers().length) map.fitBounds(fg.getBounds(), { padding:[18,18], maxZoom:14 });
+      if (bounds.getLayers().length) map.fitBounds(bounds.getBounds(), { padding:[18,18], maxZoom:14 });
+    }
+
+    function renderList(items) {
+      if (!items.length) {
+        listEl.innerHTML = `<div class="empty">Keine Treffer für den gewählten Filter.</div>`;
+        listHintEl.textContent = "Keine Einträge im aktuellen Filter.";
+        return;
+      }
+
+      listEl.innerHTML = items.map(item => `
+        <article class="item" data-id="${esc(item.id)}" style="border-left-color:${item.status === "upcoming" ? "#52b7c1" : "#c62828"}">
+          <span class="tag" style="color:${item.status === "upcoming" ? "#52b7c1" : "#c62828"}">${item.status === "upcoming" ? "GEPLANT" : "AKTIV"}</span>
+          <p class="street">${esc(item.street)}</p>
+          <p class="desc">${esc(item.desc)}</p>
+          ${item.restriction ? `<p class="small">${esc(item.restriction)}</p>` : ""}
+          <p class="small">${esc(item.zeitraum || "")}</p>
+          ${item.auftraggeber ? `<p class="small">Auftraggeber: ${esc(item.auftraggeber)}</p>` : ""}
+        </article>
+      `).join("");
+
+      listEl.querySelectorAll(".item").forEach(card => {
+        card.addEventListener("click", () => {
+          const id = card.getAttribute("data-id");
+          const item = allItems.find(x => x.id === id);
+          if (!item) return;
+
+          if (item.shapeLayer && item.shapeLayer.getBounds && item.shapeLayer.getBounds().isValid()) {
+            map.fitBounds(item.shapeLayer.getBounds(), { padding:[24,24], maxZoom:16 });
+          } else if (item.markerLayer) {
+            map.setView(item.markerLayer.getLatLng(), Math.max(map.getZoom(), 15), { animate:true });
+          }
+
+          if (item.markerLayer) item.markerLayer.openPopup();
+          else if (item.shapeLayer && item.shapeLayer.eachLayer) {
+            let opened = false;
+            item.shapeLayer.eachLayer(layer => {
+              if (!opened && layer.openPopup) { layer.openPopup(); opened = true; }
+            });
+          }
+        });
+      });
+
+      listHintEl.textContent = `${items.length} Treffer im Filter.`;
+    }
+
+    function rerender() {
+      const items = filteredItems();
+      renderMap(items);
+      renderList(items);
+      metaEl.textContent = `${items.length} Treffer · Bezirk: ${DISTRICT} · Stand: ${new Date().toLocaleString("de-DE")}`;
+      setTimeout(sendHeightToParent, 0);
     }
 
     function ringToLatLng(ring) {
@@ -233,7 +422,7 @@
       return out;
     }
 
-    function outerRings(feature) {
+    function districtRings(feature) {
       if (!feature?.geometry) return [];
       const g = feature.geometry;
       if (g.type === "Polygon") return g.coordinates?.[0] ? [ringToLatLng(g.coordinates[0])] : [];
@@ -255,7 +444,7 @@
         style:{ color:"#9b1c1c", weight:3, opacity:.95, fillOpacity:0 }
       }).addTo(districtGroup);
 
-      const holes = outerRings(districtFeature).filter(r => r.length >= 3);
+      const holes = districtRings(districtFeature).filter(r => r.length >= 3);
       const world = [[90,-360],[90,360],[-90,360],[-90,-360]];
       L.polygon([world, ...holes], {
         pane:"maskPane",
@@ -267,32 +456,35 @@
         noClip:true
       }).addTo(maskGroup);
 
-      if (border.getBounds && border.getBounds().isValid()) map.fitBounds(border.getBounds(), { padding:[20,20], maxZoom:13 });
+      if (border.getBounds && border.getBounds().isValid()) {
+        map.fitBounds(border.getBounds(), { padding:[20,20], maxZoom:13 });
+      }
     }
 
     async function fetchJson(url, params) {
       const u = new URL(url);
       u.search = new URLSearchParams(params).toString();
-      const r = await fetch(u.toString(), { cache:"no-store" });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json();
+      const res = await fetch(u.toString(), { cache:"no-store" });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.json();
     }
 
     async function loadAll() {
-      const [border, active, planned] = await Promise.all([
+      const [borderData, activeData, plannedData] = await Promise.all([
         fetchJson(URL_BORDER, { where:`stadtbezirk_bezeichnung="${DISTRICT}"`, limit:"1" }),
         fetchJson(URL_ACTIVE, { where:`stadtbezirk="${DISTRICT}"`, limit:"100" }),
         fetchJson(URL_UPCOMING, { where:`stadtbezirk_bezeichnung="${DISTRICT}"`, limit:"100" })
       ]);
 
-      districtFeature = toFeature(border.results?.[0]?.geografische_polygone);
+      districtFeature = toFeature(borderData.results?.[0]?.geografische_polygone);
       drawDistrict();
 
-      const a = (active.results || []).map(r => normalize(r, "active"));
-      const p = (planned.results || []).map(r => normalize(r, "planned"));
-      allItems = [...a, ...p];
+      const active = (activeData.results || []).map(r => normalize(r, "active"));
+      const planned = (plannedData.results || []).map(r => normalize(r, "planned"));
+      allItems = [...active, ...planned];
+
       updateStats();
-      renderData();
+      rerender();
     }
 
     document.querySelectorAll(".chip").forEach(btn => {
@@ -300,12 +492,17 @@
         document.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
         currentFilter = btn.dataset.filter;
-        renderData();
+        rerender();
       });
     });
 
+    window.addEventListener("load", sendHeightToParent);
+    window.addEventListener("resize", sendHeightToParent);
+
     loadAll().catch(() => {
-      document.getElementById("s-total").textContent = "Fehler beim Laden";
+      metaEl.textContent = "Fehler beim Laden der Daten.";
+      listEl.innerHTML = `<div class="empty">Bitte später erneut versuchen.</div>`;
+      sendHeightToParent();
     });
   </script>
 </body>
