@@ -1,1 +1,312 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Baustellen-Radar Aplerbeck (Embed)</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    html, body { margin:0; padding:0; width:100%; height:100%; overflow:hidden; font-family: Inter, system-ui, Arial, sans-serif; }
+    #map { width:100%; height:100%; }
 
+    .panel {
+      position:absolute; top:12px; left:12px; z-index:1000;
+      background:rgba(255,255,255,.94); backdrop-filter: blur(4px);
+      border:1px solid #d9e2ec; border-radius:12px; padding:10px; min-width:280px;
+      box-shadow:0 8px 22px rgba(0,0,0,.15);
+    }
+
+    .title { margin:0 0 8px; font-size:14px; font-weight:800; color:#0f172a; }
+    .stats { display:flex; gap:8px; margin-bottom:8px; }
+    .stat { background:#fff; border:1px solid #d9e2ec; border-radius:999px; padding:4px 8px; font-size:12px; font-weight:700; color:#334155; }
+    .filters { display:flex; gap:6px; flex-wrap:wrap; }
+    .chip {
+      border:1px solid #cfd8e3; background:#fff; color:#0f172a;
+      border-radius:999px; padding:6px 10px; font-size:12px; font-weight:700; cursor:pointer;
+    }
+    .chip.active { background:#1f8a92; border-color:#1f8a92; color:#fff; }
+
+    .legend {
+      position:absolute; bottom:12px; left:12px; z-index:1000;
+      background:rgba(255,255,255,.94); border:1px solid #d9e2ec; border-radius:10px; padding:8px 10px;
+      font-size:12px; color:#334155;
+    }
+    .legend .row { display:flex; align-items:center; gap:6px; margin:3px 0; }
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+
+    .marker-pin { width:34px; height:44px; display:block; filter:drop-shadow(0 3px 6px rgba(0,0,0,.28)); }
+
+    @media (max-width: 760px) {
+      .panel { min-width:0; right:12px; left:12px; }
+      .title { font-size:13px; }
+      .stat, .chip { font-size:11px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <div class="panel">
+    <p class="title">Baustellen-Radar Aplerbeck</p>
+    <div class="stats">
+      <span class="stat" id="s-total">Gesamt: 0</span>
+      <span class="stat" id="s-active">Aktiv: 0</span>
+      <span class="stat" id="s-upcoming">Geplant: 0</span>
+    </div>
+    <div class="filters">
+      <button class="chip active" data-filter="all">Alle</button>
+      <button class="chip" data-filter="active">Aktiv</button>
+      <button class="chip" data-filter="upcoming">Geplant</button>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="row"><span class="dot" style="background:#c62828"></span>Aktiv</div>
+    <div class="row"><span class="dot" style="background:#52b7c1"></span>Geplant</div>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script>
+    const DISTRICT = "Aplerbeck";
+    const URL_ACTIVE = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell-flachen/records";
+    const URL_UPCOMING = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-geplant-flachen/records";
+    const URL_BORDER = "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb62-stadtbezirke/records";
+
+    const map = L.map("map", { zoomControl:true, attributionControl:true }).setView([51.49, 7.56], 12);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap-Mitwirkende"
+    }).addTo(map);
+
+    map.createPane("maskPane"); map.getPane("maskPane").style.zIndex = 430;
+    map.createPane("districtPane"); map.getPane("districtPane").style.zIndex = 440;
+    map.createPane("shapePane"); map.getPane("shapePane").style.zIndex = 450;
+    map.createPane("markerPane"); map.getPane("markerPane").style.zIndex = 460;
+
+    const maskGroup = L.layerGroup().addTo(map);
+    const districtGroup = L.layerGroup().addTo(map);
+    const dataGroup = L.layerGroup().addTo(map);
+
+    let allItems = [];
+    let currentFilter = "all";
+    let districtFeature = null;
+
+    function esc(s) {
+      return String(s ?? "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+    }
+
+    function toFeature(shape) {
+      if (!shape || typeof shape !== "object") return null;
+      if (shape.type === "Feature" && shape.geometry) return shape;
+      if ((shape.type === "Polygon" || shape.type === "MultiPolygon") && shape.coordinates) {
+        return { type:"Feature", geometry:shape, properties:{} };
+      }
+      if (shape.geometry) return { type:"Feature", geometry:shape.geometry, properties:shape.properties || {} };
+      return null;
+    }
+
+    function parseMeasure(text) {
+      const raw = (text || "Baustelle").trim();
+      const idx = raw.indexOf(" - ");
+      const street = idx > -1 ? raw.slice(0, idx).trim() : raw;
+      const detail = idx > -1 ? raw.slice(idx + 3).trim() : raw;
+      const parts = detail.split(/\s*\/\/\/?\s*/).map(v => v.trim()).filter(Boolean);
+      return { street, desc: parts[0] || detail, restriction: parts[1] || "" };
+    }
+
+    function markerIcon(status) {
+      const fill = status === "upcoming" ? "#52b7c1" : "#c62828";
+      const svg = `
+        <svg class="marker-pin" viewBox="0 0 34 44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M17 1C8.72 1 2 7.72 2 16c0 11.74 15 27 15 27s15-15.26 15-27C32 7.72 25.28 1 17 1z"
+                fill="${fill}" stroke="#ffffff" stroke-width="2"/>
+          <g transform="translate(7.5 10.5)">
+            <svg viewBox="0 0 19 19" width="19" height="19">
+              <path fill="#fff" d="M18.4 16L10.5 2c-.2-.4-.6-.6-1-.6s-.8.2-1 .6L.6 16c-.2.4-.2.8 0 1.2.2.4.6.6 1 .6h15.7c.4 0 .8-.2 1-.6.2-.5.3-.9.1-1.2zm-16.8.5l7.9-14 7.8 14H1.6z"/>
+              <path fill="#fff" d="M14.8 14.8v-.2c0-.1 0-.1-.1-.2l-1.2-2.3c-.1-.2-.4-.4-.7-.4s-.5.2-.7.4l-.6.9-1.7-1.1v-3c0-.2-.1-.3-.3-.3l-2.2-.2c-.1 0-.2 0-.3.1L6 9.7c-.1.1-.1.4 0 .5.1.1.2.1.3.1l.3.2-.1.1-.1.1L4.2 15c-.1.2 0 .5.2.6.1 0 .1.1.2.1.2 0 .3-.1.4-.2l2-3.7.9 1v2.5c0 .3.2.5.5.5s.5-.2.5-.5v-2.7c0-.1 0-.2-.1-.3l-.6-.7.1-.1.9.5c0 .2.2.3.3.3h.1l1.7 1.1-.8 1-.1.1c-.1.1-.2.3-.2.5 0 .4.3.7.7.8h3.2c.4-.2.7-.6.7-1zM7 10.1l-.3-.2.7-.9h.4L7 10.1zm1.5 1l.6-.7v1.1l-.6-.4zM10 8.4c.4 0 .8-.3.8-.8 0-.4-.3-.8-.8-.8-.4 0-.8.3-.8.8 0 .4.3.8.8.8z"/>
+            </svg>
+          </g>
+        </svg>
+      `;
+      return L.divIcon({ className:"", html:svg, iconSize:[34,44], iconAnchor:[17,42], popupAnchor:[0,-36] });
+    }
+
+    function styleFor(status) {
+      return status === "upcoming"
+        ? { pane:"shapePane", color:"#2b95b3", weight:2, dashArray:"5 4", fillColor:"#52b7c1", fillOpacity:.20 }
+        : { pane:"shapePane", color:"#a91f1f", weight:2, fillColor:"#c62828", fillOpacity:.20 };
+    }
+
+    function popup(item) {
+      return `
+        <strong>${esc(item.street)}</strong><br>
+        ${esc(item.desc)}<br>
+        ${item.restriction ? `<em>${esc(item.restriction)}</em><br>` : ""}
+        Zeitraum: ${esc(item.zeitraum || "")}<br>
+        ${item.auftraggeber ? `Auftraggeber: ${esc(item.auftraggeber)}<br>` : ""}
+        Status: ${item.status === "upcoming" ? "Geplant" : "Aktiv"}
+      `;
+    }
+
+    function normalize(r, source) {
+      const p = parseMeasure(r.art_der_baumassnahme);
+      const coord = r.geografische_koordinate || r.geo_point_2d || {};
+      const lat = Number(coord.lat), lon = Number(coord.lon);
+      return {
+        id: [source, p.street, r.von, r.bis, lat, lon].join("|"),
+        status: source === "planned" ? "upcoming" : "active",
+        street: p.street,
+        desc: p.desc,
+        restriction: p.restriction || (r.einschrankung || ""),
+        auftraggeber: r.auftraggeber || "",
+        zeitraum: r.zeitraum || "",
+        geoShape: r.geo_shape || null,
+        lat: Number.isFinite(lat) ? lat : null,
+        lon: Number.isFinite(lon) ? lon : null,
+        _shapeLayer: null,
+        _markerLayer: null
+      };
+    }
+
+    function updateStats() {
+      const active = allItems.filter(i => i.status === "active").length;
+      const upcoming = allItems.filter(i => i.status === "upcoming").length;
+      document.getElementById("s-total").textContent = `Gesamt: ${allItems.length}`;
+      document.getElementById("s-active").textContent = `Aktiv: ${active}`;
+      document.getElementById("s-upcoming").textContent = `Geplant: ${upcoming}`;
+    }
+
+    function filtered() {
+      return currentFilter === "all" ? allItems : allItems.filter(i => i.status === currentFilter);
+    }
+
+    function renderData() {
+      dataGroup.clearLayers();
+      const fg = L.featureGroup();
+
+      filtered().forEach(item => {
+        const feat = toFeature(item.geoShape);
+        const content = popup(item);
+
+        if (feat && feat.geometry) {
+          const gj = L.geoJSON(feat, { style: styleFor(item.status), pane:"shapePane" });
+          gj.eachLayer(layer => {
+            layer.bindPopup(content);
+            layer.on("click", () => {
+              if (layer.getBounds && layer.getBounds().isValid()) {
+                map.fitBounds(layer.getBounds(), { padding:[18,18], maxZoom:16 });
+              }
+            });
+          });
+          gj.addTo(dataGroup);
+          fg.addLayer(gj);
+          item._shapeLayer = gj;
+        }
+
+        if (item.lat != null && item.lon != null) {
+          const mk = L.marker([item.lat, item.lon], { pane:"markerPane", icon: markerIcon(item.status) }).bindPopup(content);
+          mk.addTo(dataGroup);
+          fg.addLayer(mk);
+          item._markerLayer = mk;
+        }
+      });
+
+      if (fg.getLayers().length) map.fitBounds(fg.getBounds(), { padding:[18,18], maxZoom:14 });
+    }
+
+    function ringToLatLng(ring) {
+      const out = [];
+      for (const p of ring) if (Array.isArray(p) && p.length > 1) out.push([p[1], p[0]]);
+      if (out.length > 1) {
+        const a = out[0], b = out[out.length - 1];
+        if (a[0] === b[0] && a[1] === b[1]) out.pop();
+      }
+      return out;
+    }
+
+    function outerRings(feature) {
+      if (!feature?.geometry) return [];
+      const g = feature.geometry;
+      if (g.type === "Polygon") return g.coordinates?.[0] ? [ringToLatLng(g.coordinates[0])] : [];
+      if (g.type === "MultiPolygon") {
+        const rings = [];
+        for (const poly of g.coordinates || []) if (poly?.[0]) rings.push(ringToLatLng(poly[0]));
+        return rings;
+      }
+      return [];
+    }
+
+    function drawDistrict() {
+      districtGroup.clearLayers();
+      maskGroup.clearLayers();
+      if (!districtFeature) return;
+
+      const border = L.geoJSON(districtFeature, {
+        pane:"districtPane",
+        style:{ color:"#9b1c1c", weight:3, opacity:.95, fillOpacity:0 }
+      }).addTo(districtGroup);
+
+      const holes = outerRings(districtFeature).filter(r => r.length >= 3);
+      const world = [[90,-360],[90,360],[-90,360],[-90,-360]];
+      L.polygon([world, ...holes], {
+        pane:"maskPane",
+        stroke:false,
+        fillColor:"#102131",
+        fillOpacity:.42,
+        interactive:false,
+        fillRule:"evenodd",
+        noClip:true
+      }).addTo(maskGroup);
+
+      if (border.getBounds && border.getBounds().isValid()) map.fitBounds(border.getBounds(), { padding:[20,20], maxZoom:13 });
+    }
+
+    async function fetchJson(url, params) {
+      const u = new URL(url);
+      u.search = new URLSearchParams(params).toString();
+      const r = await fetch(u.toString(), { cache:"no-store" });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    }
+
+    async function loadAll() {
+      const [border, active, planned] = await Promise.all([
+        fetchJson(URL_BORDER, { where:`stadtbezirk_bezeichnung="${DISTRICT}"`, limit:"1" }),
+        fetchJson(URL_ACTIVE, { where:`stadtbezirk="${DISTRICT}"`, limit:"100" }),
+        fetchJson(URL_UPCOMING, { where:`stadtbezirk_bezeichnung="${DISTRICT}"`, limit:"100" })
+      ]);
+
+      districtFeature = toFeature(border.results?.[0]?.geografische_polygone);
+      drawDistrict();
+
+      const a = (active.results || []).map(r => normalize(r, "active"));
+      const p = (planned.results || []).map(r => normalize(r, "planned"));
+      allItems = [...a, ...p];
+      updateStats();
+      renderData();
+    }
+
+    document.querySelectorAll(".chip").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".chip").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        currentFilter = btn.dataset.filter;
+        renderData();
+      });
+    });
+
+    loadAll().catch(() => {
+      document.getElementById("s-total").textContent = "Fehler beim Laden";
+    });
+  </script>
+</body>
+</html>
