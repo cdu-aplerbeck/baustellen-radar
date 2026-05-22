@@ -327,7 +327,7 @@
     }
 
     function normalizeRecord(r) {
-      const coord = r.geografische_koordinate || {};
+      const coord = r.geografische_koordinate || r.geo_point_2d || {};
       const lat = Number(coord.lat);
       const lon = Number(coord.lon);
       if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
@@ -338,6 +338,7 @@
       const status = getStatus(von, bis);
 
       return {
+        __src: r.__src || "",
         id: `${lat}-${lon}-${parsed.street}`,
         lat, lon,
         street: parsed.street,
@@ -424,45 +425,43 @@
     }
 
     async function loadData() {
-    const endpoints = [
-      // Versuch 1: direkt gefilterte Records
-      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/records?where=" +
-      encodeURIComponent("stadtbezirk='Aplerbeck'") + "&limit=100",
+  try {
+    const qs = "where=" + encodeURIComponent('stadtbezirk="Aplerbeck"') + "&limit=100";
 
-      // Versuch 2: kompletter JSON-Export (danach lokal filtern)
-      "https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/exports/json"
-    ];
+    const [liveRes, planRes] = await Promise.all([
+      fetch("https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-tagesaktuell/records?" + qs, { cache: "no-store" }),
+      fetch("https://open-data.dortmund.de/api/explore/v2.1/catalog/datasets/fb66-baustellen-geplant/records?" + qs, { cache: "no-store" })
+    ]);
 
-    try {
-      let raw = null;
+    if (!liveRes.ok) throw new Error("tagesaktuell HTTP " + liveRes.status);
+    if (!planRes.ok) throw new Error("geplant HTTP " + planRes.status);
 
-      for (const url of endpoints) {
-        try {
-          const res = await fetch(url, { cache: "no-store" });
-          if (!res.ok) continue;
-          raw = await res.json();
-          if (raw) break;
-        } catch (_) {}
-      }
+    const liveJson = await liveRes.json();
+    const planJson = await planRes.json();
 
-      if (!raw) throw new Error("Kein Endpoint erreichbar");
+    const liveRows = (liveJson.results || []).map(r => ({ ...r, __src: "live" }));
+    const planRows = (planJson.results || []).map(r => ({ ...r, __src: "planned" }));
 
-      const rows = Array.isArray(raw)
-        ? raw.filter(r => (r.stadtbezirk || "").toLowerCase() === "aplerbeck")
-        : (raw.results || []);
+    const normalized = [...liveRows, ...planRows]
+      .map(normalizeRecord)
+      .filter(Boolean)
+      .map(i => {
+        // Einträge aus "geplant" immer als bevorstehend anzeigen
+        if (i.__src === "planned") i.status = "upcoming";
+        return i;
+      });
 
-      const normalized = rows.map(normalizeRecord).filter(Boolean);
-      normalized.sort((a, b) => (a.von?.getTime() || 0) - (b.von?.getTime() || 0));
+    normalized.sort((a, b) => (a.von?.getTime() || 0) - (b.von?.getTime() || 0));
 
-      allItems = normalized;
-      updateCounts();
-      rerender();
-    } catch (err) {
-      console.error(err);
-      metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
-      listEl.innerHTML = `<div class="empty">Fehler beim Laden der Live-Daten. Bitte später erneut versuchen.</div>`;
-    }
+    allItems = normalized;
+    updateCounts();
+    rerender();
+  } catch (err) {
+    console.error(err);
+    metaEl.textContent = "Daten konnten gerade nicht geladen werden.";
+    listEl.innerHTML = `<div class="empty">Fehler beim Laden der Live-Daten. Bitte später erneut versuchen.</div>`;
   }
+}
 
     document.querySelectorAll(".chip").forEach(btn => {
       btn.addEventListener("click", () => {
